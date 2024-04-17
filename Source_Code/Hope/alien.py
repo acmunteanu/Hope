@@ -1,0 +1,35 @@
+import pygame
+
+class Alien(pygame.sprite.Sprite):
+    def __init__(self, color,x ,y, scale_size= (50, 50)):
+        super().__init__()
+        file_path = '../assets/' + color + '.png'
+        original_image = pygame.image.load(file_path).convert_alpha()
+        self.image = pygame.transform.scale(original_image, scale_size)
+        self.rect = self.image.get_rect(topleft = (x,y))
+        
+        if color == 'red': self.value = 100
+        elif color == 'green': self.value = 200
+        else: self.value = 300
+        
+    def update(self, direction):
+        self.rect.x += direction
+        
+        
+class Miniboss(pygame.sprite.Sprite):
+    def __init__(self, side, screen_wdith, scale_size = (20, 20)):
+        super().__init__()
+        original_image = pygame.image.load('../assets/miniboss.png').convert_alpha()
+        self.image = pygame.transform.scale(original_image, scale_size)
+        
+        if side == 'right':
+            x = screen_wdith +50
+            self.speed = -3
+        else:
+            x = -50
+            self.speed = 3
+            
+        self.rect = self.image.get_rect(topleft = (x,80))
+    
+    def update(self):
+        self.rect.x += self.speed
