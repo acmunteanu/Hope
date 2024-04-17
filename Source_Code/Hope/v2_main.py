@@ -31,13 +31,14 @@ Settings = 1
 Playing = 2
 Store = 3
 Game_Over = 4
+Paused = 5
 
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 clock = pygame.time.Clock()
 
 WHITE = (255, 255, 255)
 GRAY = (200, 200, 200)
-
+ 
 font = pygame.font.Font(None, 36)
 
 #Menu Options
@@ -80,6 +81,7 @@ def handle_key_events(event):
                     redraw_needed = True
                 elif selected_option == 0:  # Start Game
                     game.state = Playing
+                    pygame.time.set_timer(ALIENLASER, 800)
                 elif selected_option == 2:  # Quit
                     running = False
         # Draw the menu only if needed based on interaction
@@ -239,7 +241,7 @@ class Game:
                 alien.rect.y += distance
     
     def alien_shoot(self):
-        if self.aliens.sprites():
+        if self.aliens.sprites() and self.state == Playing:
             random_alien = choice(self.aliens.sprites())
             laser_sprite = Laser(random_alien.rect.center, 6, screen_height)
             self.alien_lasers.add(laser_sprite)
@@ -479,6 +481,7 @@ while running:
         game.display_game_over_screen()
         game.wait_for_player_action()
 
+    
     pygame.display.flip()  # Ensure this is the only place where the screen is updated
     clock.tick(60)
 
