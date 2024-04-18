@@ -103,10 +103,6 @@ def handle_key_events(event):
                 game.state = Playing
                 current_menu = previous_menus.pop() if previous_menus else Main_Menu
 
-        # Drawing menu again if any change in state
-        #if current_menu in [Main_Menu, Settings, Paused]:
-            #draw_menu(settings_menu_options if current_menu == Settings else main_menu_options, selected_option)
-
 def handle_settings_interaction(selected_option):
     global settings_manager, screen, screen_width, screen_height
     setting_name = settings_menu_options[selected_option]
@@ -345,12 +341,11 @@ class Game:
         self.player1.score = 0
         self.player1.lasers.empty()
 
-        if self.player2 and self.player2 in self.player_group:
-            self.player2.lives = 3
+        if self.player2:
+            self.player2 = Player((2 * screen_width / 3, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\space_player2.png', self.player2_controls)
             self.player2.score = 0
+            self.player2.lives = 3
             self.player2.lasers.empty()
-        elif self.player2:
-            # Add second player if not already in the group
             self.player_group.add(self.player2)
 
         # Setup the obstacles and aliens as if starting new
@@ -416,8 +411,7 @@ class Game:
         victory_rect = victory_surf.get_rect(center=(screen_width / 2, screen_height / 2))
         self.screen.blit(victory_surf, victory_rect)
         pygame.display.flip()
-
-        
+       
     def run(self):
         screen.fill((30, 30, 30))
         if self.state == Playing:
