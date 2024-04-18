@@ -32,6 +32,7 @@ Playing = 2
 Store = 3
 Game_Over = 4
 Paused = 5
+Victory = 6
 
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 clock = pygame.time.Clock()
@@ -59,34 +60,52 @@ def draw_menu(options, selected_option):
 
 def handle_key_events(event):
     global current_menu, selected_option, running, game, settings_manager
-    redraw_needed = False  # Flag to indicate if we need to redraw the menu
 
     if event.type == pygame.KEYDOWN:
-        if current_menu == Settings:
-            if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                handle_settings_interaction(selected_option)
-                redraw_needed = True  # Redraw after changing settings
-            if event.key in [pygame.K_UP, pygame.K_DOWN]:
-                selected_option = (selected_option - 1 if event.key == pygame.K_UP else selected_option + 1) % len(settings_menu_options)
-                redraw_needed = True
-        elif current_menu == Main_Menu:
-            if event.key in [pygame.K_UP, pygame.K_DOWN]:
-                selected_option = (selected_option - 1 if event.key == pygame.K_UP else selected_option + 1) % len(main_menu_options)
-                redraw_needed = True
-            if event.key == pygame.K_RETURN:
-                if selected_option == 1:  # Settings
+        # Navigate through main menu options
+        if current_menu == Main_Menu:
+            if event.key == pygame.K_UP:
+                selected_option = (selected_option - 1) % len(main_menu_options)
+            elif event.key == pygame.K_DOWN:
+                selected_option = (selected_option + 1) % len(main_menu_options)
+            elif event.key == pygame.K_RETURN:
+                if selected_option == 0:  # Start game
+                    game.state = Playing
+                    pygame.time.set_timer(ALIENLASER, 800)  # Ensure timer for alien shooting starts
+                elif selected_option == 1:  # Enter Settings
                     previous_menus.append(current_menu)
                     current_menu = Settings
-                    selected_option = 0
-                    redraw_needed = True
-                elif selected_option == 0:  # Start Game
-                    game.state = Playing
-                    pygame.time.set_timer(ALIENLASER, 800)
-                elif selected_option == 2:  # Quit
+                    selected_option = 0  # Reset selection in settings
+                elif selected_option == 2:  # Quit game
                     running = False
-        # Draw the menu only if needed based on interaction
-        if redraw_needed:
-            draw_menu(settings_menu_options if current_menu == Settings else main_menu_options, selected_option)
+            
+        # Navigate through settings menu options
+        elif current_menu == Settings:
+            if event.key in [pygame.K_UP, pygame.K_DOWN]:
+                selected_option = (selected_option - 1 if event.key == pygame.K_UP else selected_option + 1) % len(settings_menu_options)
+            elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                handle_settings_interaction(selected_option)
+            elif event.key == pygame.K_ESCAPE:
+                current_menu = previous_menus.pop() if previous_menus else Main_Menu
+
+        # Additional game controls within the game play state
+        elif game.state == Playing:
+            if event.key == pygame.K_ESCAPE:
+                # Pause the game
+                previous_menus.append(current_menu)
+                current_menu = Paused
+                game.state = Paused
+
+        # Handling key events in the paused state
+        elif current_menu == Paused:
+            if event.key == pygame.K_ESCAPE:
+                # Resume game
+                game.state = Playing
+                current_menu = previous_menus.pop() if previous_menus else Main_Menu
+
+        # Drawing menu again if any change in state
+        #if current_menu in [Main_Menu, Settings, Paused]:
+            #draw_menu(settings_menu_options if current_menu == Settings else main_menu_options, selected_option)
 
 def handle_settings_interaction(selected_option):
     global settings_manager, screen, screen_width, screen_height
@@ -313,37 +332,47 @@ class Game:
                         self.state = Main_Menu
     
     def reset_game(self):
-        # iterate players and reset score/lives
-        for player in self.player_group.sprites():
-            player.score = 0
-            player.lives = 3
+        # Clear all game components
+        self.aliens.empty()
+        self.alien_lasers.empty()
+        self.blocks.empty()
 
-        self.state = Playing
-        
+        # Reinitialize players
+        if not hasattr(self, 'player1') or self.player1 not in self.player_group:
+            self.player1 = Player((screen_width / 2, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\spaceship_basic.png', self.player1_controls)
+            self.player_group.add(self.player1)
+        self.player1.lives = 3
+        self.player1.score = 0
+        self.player1.lasers.empty()
+
+        if self.player2 and self.player2 in self.player_group:
+            self.player2.lives = 3
+            self.player2.score = 0
+            self.player2.lasers.empty()
+        elif self.player2:
+            # Add second player if not already in the group
+            self.player_group.add(self.player2)
+
+        # Setup the obstacles and aliens as if starting new
+        self.create_multiple_obstacle(*self.obstacle_x_positions, x_start=screen_width / 15, y_start=400)
+        self.alien_setup(rows=5, cols=10)
+
+        # Restart background music
         pygame.mixer.music.load(r'E:\Project_Hope\Source_Code\assets\bg_music.wav')
         pygame.mixer.music.set_volume(0.02)
         pygame.mixer.music.play(loops=-1)
-        
-        # Reset lasers & player positions
-        self.player_group.empty()
-        player1 = Player((screen_width / 2, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\spaceship_basic.png', self.player1_controls)
-        self.player_group.add(player1)
-        if self.player2:
-            self.player2 = Player((2 * screen_width / 3, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\space_player2.png', self.player2_controls)
-            self.player_group.add(self.player2)
-        
-        for player in self.player_group:
-            player.lasers.empty()
-        
-        self.blocks.empty()
-        self.create_multiple_obstacle(*self.obstacle_x_positions, x_start=screen_width / 15, y_start=400)
-        
-        # Reset aliens
-        self.aliens.empty()
+
+        # Set the game state back to playing
+        self.state = Playing
+    
+    def setup_game(self):
+        # Initialize or reinitialize the setup for players, aliens, obstacles, etc.
+        self.player1 = Player((screen_width / 2, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\spaceship_basic.png', self.player1_controls)
+        self.player_group.add(self.player1)
+        # Add more setup logic as needed
         self.alien_setup(rows=5, cols=10)
-        
-        self.alien_lasers.empty()
-        
+        self.create_multiple_obstacle(*self.obstacle_x_positions, x_start=screen_width / 15, y_start=400)
+            
     def display_lives_and_score(self):      
         original_life_icon = pygame.image.load(r'E:\Project_Hope\Source_Code\assets\life.png').convert_alpha()
         scaled_life_icon = pygame.transform.scale(original_life_icon, (20, 20))
@@ -367,12 +396,27 @@ class Game:
                     self.screen.blit(scaled_life_icon, (screen_width - 10 - icon_width * (i + 1), 10))
             
             self.screen.blit(score_text, (score_pos_x, score_pos_y))                         
+    
+    def victory(self):
+        self.state = Victory
+        self.display_victory_screen()
                             
     def victory_message(self):
         if not self.aliens.sprites():
-            victory_surf = self.font.render('You won', False, 'white')
-            victory_rect = victory_surf.get_rect(center = (screen_width / 2, screen_height / 2))
-            screen.blit(victory_surf, victory_rect)    
+            self.state = Victory
+            self.display_victory_screen()
+    
+    def display_victory_screen(self):
+        # Clear the screen and display the victory message
+        self.screen.fill((0, 0, 0))
+        victory_text = "You are victorious! The enemy has been vanquished!"
+        victory_font = pygame.font.Font(None, 74)  # You can adjust the font size
+        # Render the text: anti-aliasing = True, white color = (255, 255, 255)
+        victory_surf = victory_font.render(victory_text, True, (255, 255, 255))
+        victory_rect = victory_surf.get_rect(center=(screen_width / 2, screen_height / 2))
+        self.screen.blit(victory_surf, victory_rect)
+        pygame.display.flip()
+
         
     def run(self):
         screen.fill((30, 30, 30))
@@ -467,12 +511,21 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.KEYDOWN:
-            handle_key_events(event)
+            if game.state == Victory:
+                if event.key == pygame.K_RETURN:
+                    game.reset_game()
+                elif event.key == pygame.K_ESCAPE:
+                    game.state == Main_Menu
+            else:
+                handle_key_events(event)
         elif event.type == ALIENLASER and game.state == Playing:
             game.alien_shoot()
 
+
     # Only redraw menus if outside of gameplay (reduces redundant draws)
-    if game.state in [Main_Menu, Settings, Store, Game_Over]:
+    if game.state == Victory:
+        game.display_victory_screen()
+    elif game.state in [Main_Menu, Settings, Store, Game_Over]:
         draw_menu(settings_menu_options if current_menu == Settings else main_menu_options if current_menu == Main_Menu else store_menu_options, selected_option)
     elif game.state == Playing:
         game.run()
