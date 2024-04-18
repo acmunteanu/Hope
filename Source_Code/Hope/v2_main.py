@@ -70,6 +70,7 @@ def handle_key_events(event):
                 selected_option = (selected_option + 1) % len(main_menu_options)
             elif event.key == pygame.K_RETURN:
                 if selected_option == 0:  # Start game
+                    game.reset_game()
                     game.state = Playing
                     pygame.time.set_timer(ALIENLASER, 800)  # Ensure timer for alien shooting starts
                 elif selected_option == 1:  # Enter Settings
