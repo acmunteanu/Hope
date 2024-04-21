@@ -62,32 +62,32 @@ def handle_key_events(event):
     global current_menu, selected_option, running, game, settings_manager
 
     if event.type == pygame.KEYDOWN:
-        # Navigate through main menu options
-        if current_menu == Main_Menu:
-            if event.key == pygame.K_UP:
-                selected_option = (selected_option - 1) % len(main_menu_options)
-            elif event.key == pygame.K_DOWN:
-                selected_option = (selected_option + 1) % len(main_menu_options)
-            elif event.key == pygame.K_RETURN:
-                if selected_option == 0:  # Start game
-                    game.reset_game()
-                    game.state = Playing
-                    pygame.time.set_timer(ALIENLASER, 800)  # Ensure timer for alien shooting starts
-                elif selected_option == 1:  # Enter Settings
-                    previous_menus.append(current_menu)
-                    current_menu = Settings
-                    selected_option = 0  # Reset selection in settings
-                elif selected_option == 2:  # Quit game
-                    running = False
+        # Only process menu navigation if in the Main_Menu state
+        if game.state == Main_Menu:
+            if current_menu == Main_Menu:
+                if event.key == pygame.K_UP:
+                    selected_option = (selected_option - 1) % len(main_menu_options)
+                elif event.key == pygame.K_DOWN:
+                    selected_option = (selected_option + 1) % len(main_menu_options)
+                elif event.key == pygame.K_RETURN:
+                    if selected_option == 0:  # Start game
+                        game.reset_game()
+                        game.state = Playing
+                        pygame.time.set_timer(ALIENLASER, 800)  # Ensure timer for alien shooting starts
+                    elif selected_option == 1:  # Enter Settings
+                        previous_menus.append(current_menu)
+                        current_menu = Settings
+                        selected_option = 0  # Reset selection in settings
+                    elif selected_option == 2:  # Quit game
+                        running = False
             
-        # Navigate through settings menu options
-        elif current_menu == Settings:
-            if event.key in [pygame.K_UP, pygame.K_DOWN]:
-                selected_option = (selected_option - 1 if event.key == pygame.K_UP else selected_option + 1) % len(settings_menu_options)
-            elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                handle_settings_interaction(selected_option)
-            elif event.key == pygame.K_ESCAPE:
-                current_menu = previous_menus.pop() if previous_menus else Main_Menu
+            elif current_menu == Settings:
+                if event.key in [pygame.K_UP, pygame.K_DOWN]:
+                    selected_option = (selected_option - 1 if event.key == pygame.K_UP else selected_option + 1) % len(settings_menu_options)
+                elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    handle_settings_interaction(selected_option)
+                elif event.key == pygame.K_ESCAPE:
+                    current_menu = previous_menus.pop() if previous_menus else Main_Menu
 
         # Additional game controls within the game play state
         elif game.state == Playing:
@@ -98,7 +98,7 @@ def handle_key_events(event):
                 game.state = Paused
 
         # Handling key events in the paused state
-        elif current_menu == Paused:
+        elif game.state == Paused:
             if event.key == pygame.K_ESCAPE:
                 # Resume game
                 game.state = Playing
@@ -144,6 +144,7 @@ class Game:
         
         self.live_surface = pygame.image.load(r'E:\Project_Hope\Source_Code\assets\life.png').convert_alpha()
         
+        
         self.player1_controls = {
             'left': pygame.K_LEFT,
             'right': pygame.K_RIGHT,
@@ -160,6 +161,10 @@ class Game:
             'shoot': pygame.K_y
         }
 
+        self.obstacle_x_positions = [num * (screen_width / 4) for num in range(4)]  # Adjusted for 4 obstacles as an example
+        
+        self.setup_game()
+        
         player1 = Player((screen_width / 2, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\spaceship_basic.png', self.player1_controls)
         self.player_group = pygame.sprite.Group(player1)
 
@@ -215,12 +220,12 @@ class Game:
             self.player_group.add(self.player2)
                    
     def create_obstacle(self, x_start, y_start, offset_x):
-        for row_index, row in enumerate(self.shape):
+        for row_index, row in enumerate(obstacle.shape):
             for col_index, col in enumerate(row):
                 if col == 'x':
-                    x = x_start + col_index * self.block_size + offset_x
-                    y = y_start + row_index * self.block_size
-                    block = obstacle.Block(self.block_size,(241,79,80),x, y)
+                    x = x_start + col_index * 6 + offset_x
+                    y = y_start + row_index * 6
+                    block = obstacle.Block(6, (241, 79, 80), x, y)
                     self.blocks.add(block)
         
     def create_multiple_obstacle(self, *offset, x_start, y_start):
@@ -333,6 +338,7 @@ class Game:
         self.aliens.empty()
         self.alien_lasers.empty()
         self.blocks.empty()
+        self.setup_game()
 
         # Reinitialize players
         if not hasattr(self, 'player1') or self.player1 not in self.player_group:
@@ -362,12 +368,26 @@ class Game:
         self.state = Playing
     
     def setup_game(self):
-        # Initialize or reinitialize the setup for players, aliens, obstacles, etc.
+        # Initialize players, aliens, etc.
+        self.player_group = pygame.sprite.Group()
+        self.aliens = pygame.sprite.Group()
+        self.alien_lasers = pygame.sprite.Group()
+        self.blocks = pygame.sprite.Group()
+        
+        # Player setup
         self.player1 = Player((screen_width / 2, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\spaceship_basic.png', self.player1_controls)
         self.player_group.add(self.player1)
-        # Add more setup logic as needed
-        self.alien_setup(rows=5, cols=10)
+        
+        self.player2 = None  # Ensure player2 is None initially
+
+        # Obstacle and alien setup
         self.create_multiple_obstacle(*self.obstacle_x_positions, x_start=screen_width / 15, y_start=400)
+        self.alien_setup(rows=5, cols=10)
+
+        # Miniboss and audio setup
+        self.miniboss = pygame.sprite.GroupSingle()
+        self.miniboss_spawn_time = randint(40, 80)
+        self.init_audio(settings_manager.get_settings('volume'))
             
     def display_lives_and_score(self):      
         original_life_icon = pygame.image.load(r'E:\Project_Hope\Source_Code\assets\life.png').convert_alpha()
