@@ -283,7 +283,7 @@ class Game:
                     player.increase_score(len(aliens_hit) * 100)
                     laser.kill()
                     self.explosion_sound.play()
-                    
+                           
         # alien <> player
         for laser in self.alien_lasers:
             player_hit = pygame.sprite.spritecollideany(laser, self.player_group) 
@@ -291,15 +291,31 @@ class Game:
                 player_hit.lose_life()
                 laser.kill() 
 
-        #alive?
-        if not self.player_group or all(player.lives <= 0 for player in self.player_group.sprites()):
+        # Check if all players are alive
+        if not any(player.lives > 0 for player in self.player_group.sprites()):
             print("Game Over. Returning to main menu")
             self.state = Game_Over
             self.handle_game_over()
             
         #victory
-        if not self.aliens.sprites():
+        if not self.aliens.sprites() and not self.miniboss.sprite:
             self.victory()
+        
+        # Miniboss collision detection
+        if self.miniboss.sprite:  # Check if there is a miniboss present
+            for player in self.player_group.sprites():
+                for laser in player.lasers:
+                    if pygame.sprite.collide_rect(laser, self.miniboss.sprite):
+                        self.miniboss.sprite.lose_health()
+                        player.increase_score(1000)
+                        laser.kill()  # Destroy the laser after hitting the miniboss
+
+            # Check miniboss health and existence only if it still exists
+            if self.miniboss.sprite and self.miniboss.sprite.health <= 0:
+                self.miniboss.sprite.kill()
+                self.explosion_sound.play()
+                
+                print("Miniboss defeated!")
             
     def display_game_over_screen(self):
         self.screen.fill((0, 0, 0))
@@ -456,13 +472,13 @@ class Game:
             self.aliens.update(self.alien_direction)
             self.aliens.draw(screen)
             self.collision_checks()
-        
+
             keys = pygame.key.get_pressed()
             if keys[pygame.K_p]:
                 self.add_second_player()
         
             self.miniboss.draw(screen)
-            self.miniboss.update()
+            self.miniboss.update() 
             self.miniboss_timer()
         
             self.blocks.draw(screen)

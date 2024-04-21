@@ -17,19 +17,29 @@ class Alien(pygame.sprite.Sprite):
         
         
 class Miniboss(pygame.sprite.Sprite):
-    def __init__(self, side, screen_wdith, scale_size = (20, 20)):
+    def __init__(self, side, screen_width, scale_size=(20, 20)):
         super().__init__()
         original_image = pygame.image.load('../assets/miniboss.png').convert_alpha()
         self.image = pygame.transform.scale(original_image, scale_size)
+        self.screen_width = screen_width
         
         if side == 'right':
-            x = screen_wdith +50
-            self.speed = -3
+            x = screen_width + 50  # Starts off the right edge
+            self.speed = -3  # Moves left
         else:
-            x = -50
-            self.speed = 3
-            
-        self.rect = self.image.get_rect(topleft = (x,80))
+            x = -50  # Starts off the left edge
+            self.speed = 3  # Moves right
+        
+        self.rect = self.image.get_rect(topleft=(x, 80))
+        self.health = 40
+        print(f"Miniboss created at {x}, speed {self.speed}")
+
+        
+    def lose_health(self, amount=20):
+        self.health -= amount
+        if self.health <= 0:
+            self.kill()
     
     def update(self):
         self.rect.x += self.speed
+
