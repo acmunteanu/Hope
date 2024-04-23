@@ -6,11 +6,15 @@ from random import choice, randint
 from laser import Laser
 from settings_manager import SettingsManager
 import os
+import time
 
 os.chdir('E:\\Project_Hope\\Source_Code\\Hope')
 pygame.init()
 
+
 ALIENLASER = pygame.USEREVENT + 1
+pygame.time.set_timer(ALIENLASER, 800) 
+running = True
 
 settings_manager = SettingsManager()
 settings = settings_manager.settings
@@ -64,8 +68,8 @@ def handle_key_events(event):
     if event.type == pygame.KEYDOWN:
         if game.state == Playing:
             if event.key == pygame.K_ESCAPE:
-                # Pause the game
-                previous_menus.append(current_menu)  # Save current state
+                # Pause the game and show the main menu
+                previous_menus.append(current_menu)  # Save the current state before pausing
                 current_menu = Main_Menu
                 selected_option = 0  # Reset to the top of the main menu
                 game.state = Paused
@@ -79,10 +83,9 @@ def handle_key_events(event):
                 elif event.key == pygame.K_RETURN:
                     if selected_option == 0:  # 'Resume Game' option
                         game.state = Playing
-                        current_menu = Main_Menu
-                        pygame.time.set_timer(ALIENLASER, 800)
+                        current_menu = previous_menus.pop() if previous_menus else Main_Menu
                     elif selected_option == 1:  # 'Settings' option
-                        previous_menus.append(current_menu)  # Save current menu to return later
+                        previous_menus.append(current_menu)  # Remember the current menu
                         current_menu = Settings
                         selected_option = 0  # Reset selection in settings
                     elif selected_option == 2:  # 'Quit' option
@@ -90,7 +93,7 @@ def handle_key_events(event):
                 elif event.key == pygame.K_ESCAPE:
                     # Resume the game if ESC is pressed again in pause menu
                     game.state = Playing
-                    current_menu = Main_Menu
+                    current_menu = previous_menus.pop() if previous_menus else Main_Menu
 
             elif current_menu == Settings:
                 if event.key == pygame.K_UP:
@@ -100,9 +103,15 @@ def handle_key_events(event):
                 elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                     handle_settings_interaction(selected_option)
                 elif event.key == pygame.K_ESCAPE:
-                    current_menu = previous_menus.pop() if previous_menus else Main_Menu
-                    if not previous_menus:  # If no previous menu, assume returning to main game menu
-                        game.state = Paused
+                    # When exiting settings, ensure we return to a valid menu, managing game state appropriately
+                    if previous_menus:
+                        last_menu = previous_menus.pop()
+                        current_menu = last_menu
+                        if last_menu == Main_Menu:
+                            game.state = Paused
+                    else:
+                        current_menu = Main_Menu
+                        game.state = Paused  # Default to Paused if no previous menu is recorded
 
         else:  # This is for the Main_Menu state and others
             if event.key == pygame.K_UP:
@@ -114,7 +123,6 @@ def handle_key_events(event):
                     if selected_option == 0:  # Start game
                         game.reset_game()
                         game.state = Playing
-                        pygame.time.set_timer(ALIENLASER, 800)
                     elif selected_option == 1:  # Enter Settings
                         previous_menus.append(current_menu)
                         current_menu = Settings
@@ -155,7 +163,7 @@ def handle_settings_interaction(selected_option):
             game.state = Paused
         else:
             game.state = Playing
-            pygame.time.set_timer(ALIENLASER, 800)
+
 
 def toggle_fullscreen():
     is_fullscreen = settings_manager.get_settings('fullscreen')
@@ -368,16 +376,17 @@ class Game:
         waiting = True
         while waiting:
             for event in pygame.event.get():
+                print(event)
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN:
+                    if event.key == pygame.K_RETURN or event.key == pygame.K_ESCAPE:
+                        if self.state == Victory:
+                            print("Returning to Main Menu from Victory")
+                            self.state = Main_Menu
+                            self.setup_game()  # Re-setup the game to ensure all components are initialized
                         waiting = False
-                        self.reset_game()
-                    elif event.key == pygame.K_ESCAPE:
-                        waiting = False
-                        self.state = Main_Menu
     
     def reset_game(self):
         # Clear all game components
@@ -472,12 +481,12 @@ class Game:
         # Clear the screen and display the victory message
         self.screen.fill((0, 0, 0))
         victory_text = "You are victorious! The enemy has been vanquished!"
-        victory_font = pygame.font.Font(None, 74)  # You can adjust the font size
-        # Render the text: anti-aliasing = True, white color = (255, 255, 255)
+        victory_font = pygame.font.Font(None, 74)
         victory_surf = victory_font.render(victory_text, True, (255, 255, 255))
         victory_rect = victory_surf.get_rect(center=(screen_width / 2, screen_height / 2))
         self.screen.blit(victory_surf, victory_rect)
         pygame.display.flip()
+        self.wait_for_player_action()
        
     def run(self):
         screen.fill((30, 30, 30))
@@ -523,14 +532,35 @@ class Game:
         elif self.state == Game_Over:
             self.display_game_over_screen()
             self.wait_for_player_action()   
+         
+        elif self.state == Victory:
+            self.display_victory_screen()
+            # Wait for a key press to continue from the victory screen
+            self.wait_for_player_action()  # This should pause the loop until an action is taken
+        elif self.state == Game_Over:
+            self.display_game_over_screen()
+            self.wait_for_player_action()
+            
+        pygame.display.flip()     
             
     def handle_game_over(self):
+        # Stop game music and sounds
         pygame.mixer.music.stop()
         self.laser_sound.stop()
         self.explosion_sound.stop()
-        self.state = Game_Over
+
+        # Reset game components
+        self.aliens.empty()
+        self.alien_lasers.empty()
+        self.blocks.empty()
+        self.player_group.empty()
+
+        # Optionally display a game over screen
         self.display_game_over_screen()
-        self.wait_for_player_action()
+
+        pygame.event.clear()
+        game.setup_game()
+        game.state = Main_Menu
         
     def check_players_status(self):
         for player in self.player_group.sprites():
@@ -566,9 +596,10 @@ current_menu = Main_Menu
 previous_menus = []
   
 #Main Game loop
-running = True
 while running:
-    for event in pygame.event.get():
+    dt = clock.tick(60) / 1000.0  # Control frame rate and get delta time
+    events = pygame.event.get()
+    for event in events:
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.KEYDOWN:
@@ -576,24 +607,20 @@ while running:
         elif event.type == ALIENLASER and game.state == Playing:
             game.alien_shoot()
 
-    # Clear the screen once per frame here
-    screen.fill((0, 0, 0))  
-
+    # Game state management
     if game.state == Playing:
         game.run()
         game.display_lives_and_score()
-    elif game.state in [Main_Menu, Paused, Settings]:  # Handle all menu-related states
-        # Ensure the correct options are passed based on the current menu
+    elif game.state in [Main_Menu, Paused, Settings]:
         options = settings_menu_options if current_menu == Settings else main_menu_options
         draw_menu(options, selected_option)
-
     elif game.state == Game_Over:
         game.display_game_over_screen()
         game.wait_for_player_action()
 
-    
-    pygame.display.flip()  # Ensure this is the only place where the screen is updated
-    clock.tick(60)
+    pygame.display.flip()  # Update display
+    fps = clock.get_fps()
+    #print(f"Frame rate: {fps:.2f} FPS")  # Debugging output
 
 pygame.quit()
 sys.exit()
