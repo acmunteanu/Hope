@@ -103,7 +103,7 @@ def handle_key_events(event):
                 elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                     handle_settings_interaction(selected_option)
                 elif event.key == pygame.K_ESCAPE:
-                    # When exiting settings, ensure we return to a valid menu, managing game state appropriately
+                    # Game state manage on settings exit
                     if previous_menus:
                         last_menu = previous_menus.pop()
                         current_menu = last_menu
@@ -154,11 +154,9 @@ def handle_settings_interaction(selected_option):
         settings_manager.update_settings('borderless', new_value)
         screen = pygame.display.set_mode((screen_width, screen_height), pygame.NOFRAME) if new_value else pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
     elif setting_name == 'Back':
-        # When 'Back' is selected, return to the previous menu state correctly.
+        # Previous menu via "Back"
         current_menu = previous_menus.pop() if previous_menus else Main_Menu
-
-        # If the game was paused and we are going back from settings,
-        # ensure that we return to the paused state.
+        # Ensure paused state
         if game.state == Paused and current_menu == Main_Menu:
             game.state = Paused
         else:
@@ -331,11 +329,11 @@ class Game:
 
         # Check if all players are alive
         if not any(player.lives > 0 for player in self.player_group.sprites()):
-            print("Game Over. Returning to main menu")
+            #print("You have failed this galaxy...") # Debugging output
             self.state = Game_Over
             self.handle_game_over()
             
-        #victory
+        # Victory
         if not self.aliens.sprites() and not self.miniboss.sprite:
             self.victory()
         
@@ -346,44 +344,45 @@ class Game:
                     if pygame.sprite.collide_rect(laser, self.miniboss.sprite):
                         self.miniboss.sprite.lose_health()
                         player.increase_score(1000)
-                        laser.kill()  # Destroy the laser after hitting the miniboss
+                        laser.kill()
 
             # Check miniboss health and existence only if it still exists
             if self.miniboss.sprite and self.miniboss.sprite.health <= 0:
                 self.miniboss.sprite.kill()
                 self.explosion_sound.play()
                 
-                print("Miniboss defeated!")
+                #print("Miniboss defeated!") Debugging output
             
     def display_game_over_screen(self):
         self.screen.fill((0, 0, 0))
         font = pygame.font.Font(None, 74)
-        text = font.render("Game Over", True, (255, 0, 0))
-        text_rect = text.get_rect(center = (screen_width / 2, screen_height /2 - 50))
+        text = font.render("You have failed this galaxy", True, (255, 0, 0))
+        text_rect = text.get_rect(center=(screen_width / 2, screen_height / 2 - 50))
         self.screen.blit(text, text_rect)
-        
+
         score_font = pygame.font.Font(None, 30)
         players = self.player_group.sprites()
+        players.sort(key=lambda x: x.score, reverse=True)  # Sort players by score in descending order
         for i, player in enumerate(players):
             score_text = score_font.render(f"Player {i+1} Score: {player.score}", True, (255, 255, 255))
-            score_rect = score_text.get_rect(center=(screen_width / 2, screen_height / 2 + 30 + (i * 20)))
+            score_rect = score_text.get_rect(center=(screen_width / 2, screen_height / 2 + 50 + (i * 30)))
             self.screen.blit(score_text, score_rect)
-        
+
         pygame.display.flip()
-        pygame.time.delay(2000)
+        self.wait_for_player_action()
         
     def wait_for_player_action(self):
         waiting = True
         while waiting:
             for event in pygame.event.get():
-                print(event)
+                #print(event) Debugging output
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_ESCAPE:
                         if self.state == Victory:
-                            print("Returning to Main Menu from Victory")
+                            #print("Returning to Main Menu from Victory") Debugging output
                             self.state = Main_Menu
                             self.setup_game()  # Re-setup the game to ensure all components are initialized
                         waiting = False
@@ -433,7 +432,7 @@ class Game:
         self.player1 = Player((screen_width / 2, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\spaceship_basic.png', self.player1_controls)
         self.player_group.add(self.player1)
         
-        self.player2 = None  # Ensure player2 is None initially
+        self.player2 = None
 
         # Obstacle and alien setup
         self.create_multiple_obstacle(*self.obstacle_x_positions, x_start=screen_width / 15, y_start=400)
@@ -454,13 +453,13 @@ class Game:
             score_text = self.font.render(f"Score: {player.score}", True, (255, 255, 255))
             score_pos_y = 35
             
-            #p1 score
+            # P1 score
             if index == 0:
                 score_pos_x = 10
                 for i in range(player.lives):
                     self.screen.blit(scaled_life_icon, (start_x + i * icon_width, 10))
                     
-            #p2 score
+            # P2 score
             else:
                 score_pos_x = screen_width - score_text.get_width() - 10
                 for i in range(player.lives):
@@ -478,13 +477,21 @@ class Game:
             self.display_victory_screen()
     
     def display_victory_screen(self):
-        # Clear the screen and display the victory message
         self.screen.fill((0, 0, 0))
         victory_text = "You are victorious! The enemy has been vanquished!"
         victory_font = pygame.font.Font(None, 74)
         victory_surf = victory_font.render(victory_text, True, (255, 255, 255))
-        victory_rect = victory_surf.get_rect(center=(screen_width / 2, screen_height / 2))
+        victory_rect = victory_surf.get_rect(center=(screen_width / 2, screen_height / 2 - 100))
         self.screen.blit(victory_surf, victory_rect)
+
+        score_font = pygame.font.Font(None, 30)
+        players = self.player_group.sprites()
+        players.sort(key=lambda x: x.score, reverse=True)  # Sort players by score in descending order
+        for i, player in enumerate(players):
+            score_text = score_font.render(f"Player {i+1} Score: {player.score}", True, (255, 255, 255))
+            score_rect = score_text.get_rect(center=(screen_width / 2, screen_height / 2 + 30 + (i * 30)))
+            self.screen.blit(score_text, score_rect)
+
         pygame.display.flip()
         self.wait_for_player_action()
        
@@ -495,7 +502,7 @@ class Game:
             active_players = self.player_group.sprites()
             
             for player in active_players:
-                player.get_input()  # This method should use the player's own controls
+                player.get_input()
                 player.update()
                 player.lasers.update()
                 player.lasers.draw(self.screen)
@@ -504,7 +511,7 @@ class Game:
                 player.rect.y = max(0, min(player.rect.y, screen_height - player.image.get_height()))
                 player.recharge()
         
-            #game entities draw + update       
+            # Game entities draw + update       
             self.alien_position_checker()
             self.alien_lasers.update()
             self.alien_lasers.draw(screen)
@@ -525,7 +532,7 @@ class Game:
             self.player_group.draw(screen)
             self.player_group.update()
         
-            #UI
+            # UI
             self.display_lives_and_score()
             self.victory_message()
         
@@ -555,7 +562,6 @@ class Game:
         self.blocks.empty()
         self.player_group.empty()
 
-        # Optionally display a game over screen
         self.display_game_over_screen()
 
         pygame.event.clear()
@@ -586,16 +592,16 @@ def draw_menu(options, selected_option):
 
 def check_game_over(self):
     if all(life <= 0 for life in self.lives):
-        print("Game Over. You have failed this planet...")
+        #print("Game Over. You have failed this planet...") Debugging output
         self.reset_game()
-    else:
-        print("Your wingmate is bollocks. It's all on you now, skipper.")
+    #else:
+        #print("Your wingmate is bollocks. It's all on you now, skipper.") Debugging output
 
 game = Game()
 current_menu = Main_Menu
 previous_menus = []
   
-#Main Game loop
+# Main Game loop
 while running:
     dt = clock.tick(60) / 1000.0  # Control frame rate and get delta time
     events = pygame.event.get()
