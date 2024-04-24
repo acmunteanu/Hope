@@ -9,6 +9,7 @@ import os
 import time
 
 os.chdir('E:\\Project_Hope\\Source_Code\\Hope')
+pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.init()
 
 
@@ -146,9 +147,10 @@ def handle_settings_interaction(selected_option):
         settings_manager.update_settings('fullscreen', new_value)
         screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN) if new_value else pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
     elif setting_name == 'Volume':
-        new_volume = (settings_manager.get_settings('volume') + 0.1) % 1.1
+        current_volume = settings_manager.get_settings('volume')
+        new_volume = round((current_volume + 0.01) % 1.0, 2)  # Ensures volume is between 0.0 and 1.0
         settings_manager.update_settings('volume', new_volume)
-        pygame.mixer.music.set_volume(new_volume)
+        game.init_audio(new_volume)
     elif setting_name == 'Borderless':
         new_value = not settings_manager.get_settings('borderless')
         settings_manager.update_settings('borderless', new_value)
@@ -243,11 +245,16 @@ class Game:
         self.laser_sound = pygame.mixer.Sound(r'E:\Project_Hope\Source_Code\assets\spaceship_1_laser.mp3')
         self.explosion_sound = pygame.mixer.Sound(r'E:\Project_Hope\Source_Code\assets\alien_laser.mp3')
         
+        # Setting volume for all sounds
         self.music.set_volume(volume_level)
         self.laser_sound.set_volume(volume_level)
         self.explosion_sound.set_volume(volume_level)
+
+        # Assuming you want to play music continuously.
+        pygame.mixer.music.load(r'E:\Project_Hope\Source_Code\assets\bg_music.wav')
         pygame.mixer.music.set_volume(volume_level)
-        
+        pygame.mixer.music.play(-1)
+            
     def add_second_player(self):
         if not self.player2:
             self.player2 = Player(
@@ -578,17 +585,17 @@ def draw_menu(options, selected_option):
     screen.fill((0, 0, 0))
     for i, option in enumerate(options):
         display_text = option
-        if option == 'Fullscreen':
+        if option == 'Volume':
+            display_text += f": {int(settings_manager.get_settings('volume') * 100)}%"  # Display percentage
+        elif option == 'Fullscreen':
             display_text += f": {'ON' if settings_manager.get_settings('fullscreen') else 'OFF'}"
-        elif option == 'Volume':
-            display_text += f": {int(settings_manager.get_settings('volume') * 100)}%"
+        elif option == 'Borderless':
+            display_text += f": {'ON' if settings_manager.get_settings('borderless') else 'OFF'}"
 
-        if i == selected_option:
-            label = font.render(f"{display_text} +", True, WHITE)
-        else:
-            label = font.render(display_text, True, GRAY)
-        screen.blit(label, (screen_width//2 - label.get_rect().width//2, 300 + i*40))
-    pygame.display.flip()       
+        text_color = WHITE if i == selected_option else GRAY
+        label = font.render(f"{display_text}", True, text_color)
+        screen.blit(label, (screen_width // 2 - label.get_rect().width // 2, 300 + i * 40))
+    pygame.display.flip()     
 
 def check_game_over(self):
     if all(life <= 0 for life in self.lives):
