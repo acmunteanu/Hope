@@ -5,7 +5,7 @@ class Block(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.Surface((size, size))
         self.image.fill(color)
-        self.rect = self.image.get_rect(topleft = (x,y))
+        self.rect = self.image.get_rect(topleft = (x,y + 300))
 
 shape = [
     'xxxxxxxxx',

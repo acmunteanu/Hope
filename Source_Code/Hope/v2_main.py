@@ -324,6 +324,12 @@ class Game:
                     player.increase_score(len(aliens_hit) * 100)
                     laser.kill()
                     self.explosion_sound.play()
+                block_hit = pygame.sprite.groupcollide(player.lasers, self.blocks, True, True)
+        
+        # alien <> obstacle inter
+        for alien in self.aliens.sprites():
+            if pygame.sprite.spritecollide(alien, self.blocks, dokill=False):
+                alien.rect.y += 10
                            
         # alien <> player
         for laser in self.alien_lasers:
@@ -331,7 +337,14 @@ class Game:
             if player_hit:
                 player_hit.lose_life()
                 laser.kill() 
+                
+        alien_block_hit = pygame.sprite.groupcollide(self.alien_lasers, self.blocks, True, True)
 
+        # player <> obstacle
+        for player in self.player_group.sprites():
+            if pygame.sprite.spritecollide(player, self.blocks, False):
+                player.lose_life()
+        
         # Check if all players are alive
         if not any(player.lives > 0 for player in self.player_group.sprites()):
             #print("You have failed this galaxy...") # Debugging output
@@ -343,7 +356,7 @@ class Game:
             self.victory()
         
         # Miniboss collision detection
-        if self.miniboss.sprite:  # Check if there is a miniboss present
+        if self.miniboss.sprite: 
             for player in self.player_group.sprites():
                 for laser in player.lasers:
                     if pygame.sprite.collide_rect(laser, self.miniboss.sprite):
@@ -501,12 +514,7 @@ class Game:
         self.wait_for_player_action()
        
     def run(self):
-        
-        if self.state in [Main_Menu, Settings, Paused, Store, Victory, Game_Over]:
-            self.screen.blit(config.menus_background_path)
-        else:
-            screen.fill((30, 30, 30))
-        
+        screen.fill((30, 30, 30))
         if self.state == Playing:
             # Define keys for players
             active_players = self.player_group.sprites()
