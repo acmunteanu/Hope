@@ -5,10 +5,8 @@ from alien import Alien, Miniboss
 from random import choice, randint
 from laser import Laser
 from settings_manager import SettingsManager
-import os
-import time
+import config
 
-os.chdir('E:\\Project_Hope\\Source_Code\\Hope')
 pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.init()
 
@@ -180,7 +178,7 @@ class Game:
         self.screen = screen
         self.state = Main_Menu
         
-        self.live_surface = pygame.image.load(r'E:\Project_Hope\Source_Code\assets\life.png').convert_alpha()
+        self.live_surface = pygame.image.load(config.life_icon_path).convert_alpha()
         
         
         self.player1_controls = {
@@ -203,7 +201,7 @@ class Game:
         
         self.setup_game()
         
-        player1 = Player((screen_width / 2, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\spaceship_basic.png', self.player1_controls)
+        player1 = Player((screen_width / 2, screen_height - 50), config.player_image_path, self.player1_controls)
         self.player_group = pygame.sprite.Group(player1)
 
         self.player2 = None  # Placeholder for player2
@@ -230,20 +228,20 @@ class Game:
         self.miniboss_spawn_time = randint (40, 80)
         
         # Audio
-        music = pygame.mixer.Sound(r'E:\Project_Hope\Source_Code\assets\bg_music.wav')
+        music = pygame.mixer.Sound(config.music_path)
         music.set_volume(0.02) 
         music.play(loops =-1)
-        self.laser_sound = pygame.mixer.Sound(r'E:\Project_Hope\Source_Code\assets\spaceship_1_laser.mp3')
+        self.laser_sound = pygame.mixer.Sound(config.laser_sound_path)
         self.laser_sound.set_volume(0.02)
-        self.explosion_sound = pygame.mixer.Sound(r'E:\Project_Hope\Source_Code\assets\alien_laser.mp3')
+        self.explosion_sound = pygame.mixer.Sound(config.explosion_sound_path)
         self.explosion_sound.set_volume(0.03)
 
         self.init_audio(settings_manager.get_settings('volume'))
         
     def init_audio(self, volume_level):
-        self.music = pygame.mixer.Sound(r'E:\Project_Hope\Source_Code\assets\bg_music.wav')
-        self.laser_sound = pygame.mixer.Sound(r'E:\Project_Hope\Source_Code\assets\spaceship_1_laser.mp3')
-        self.explosion_sound = pygame.mixer.Sound(r'E:\Project_Hope\Source_Code\assets\alien_laser.mp3')
+        self.music = pygame.mixer.Sound(config.music_path)
+        self.laser_sound = pygame.mixer.Sound(config.laser_sound_path)
+        self.explosion_sound = pygame.mixer.Sound(config.explosion_sound_path)
         
         # Setting volume for all sounds
         self.music.set_volume(volume_level)
@@ -251,14 +249,14 @@ class Game:
         self.explosion_sound.set_volume(volume_level)
 
         # Assuming you want to play music continuously.
-        pygame.mixer.music.load(r'E:\Project_Hope\Source_Code\assets\bg_music.wav')
+        pygame.mixer.music.load(config.music_path)
         pygame.mixer.music.set_volume(volume_level)
         pygame.mixer.music.play(-1)
             
     def add_second_player(self):
         if not self.player2:
             self.player2 = Player(
-                (2 * screen_width / 3, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\space_player2.png',
+                (2 * screen_width / 3, screen_height - 50), config.player2_image_path,
                 self.player2_controls)
             self.player_group.add(self.player2)
                    
@@ -403,14 +401,14 @@ class Game:
 
         # Reinitialize players
         if not hasattr(self, 'player1') or self.player1 not in self.player_group:
-            self.player1 = Player((screen_width / 2, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\spaceship_basic.png', self.player1_controls)
+            self.player1 = Player((screen_width / 2, screen_height - 50), config.player_image_path, self.player1_controls)
             self.player_group.add(self.player1)
         self.player1.lives = 3
         self.player1.score = 0
         self.player1.lasers.empty()
 
         if self.player2:
-            self.player2 = Player((2 * screen_width / 3, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\space_player2.png', self.player2_controls)
+            self.player2 = Player((2 * screen_width / 3, screen_height - 50), config.player2_image_path, self.player2_controls)
             self.player2.score = 0
             self.player2.lives = 3
             self.player2.lasers.empty()
@@ -421,7 +419,7 @@ class Game:
         self.alien_setup(rows=5, cols=10)
 
         # Restart background music
-        pygame.mixer.music.load(r'E:\Project_Hope\Source_Code\assets\bg_music.wav')
+        pygame.mixer.music.load(config.music_path)
         pygame.mixer.music.set_volume(0.02)
         pygame.mixer.music.play(loops=-1)
 
@@ -436,7 +434,7 @@ class Game:
         self.blocks = pygame.sprite.Group()
         
         # Player setup
-        self.player1 = Player((screen_width / 2, screen_height - 50), r'E:\Project_Hope\Source_Code\assets\spaceship_basic.png', self.player1_controls)
+        self.player1 = Player((screen_width / 2, screen_height - 50), config.player_image_path, self.player1_controls)
         self.player_group.add(self.player1)
         
         self.player2 = None
@@ -451,7 +449,7 @@ class Game:
         self.init_audio(settings_manager.get_settings('volume'))
             
     def display_lives_and_score(self):      
-        original_life_icon = pygame.image.load(r'E:\Project_Hope\Source_Code\assets\life.png').convert_alpha()
+        original_life_icon = pygame.image.load(config.life_icon_path).convert_alpha()
         scaled_life_icon = pygame.transform.scale(original_life_icon, (20, 20))
         icon_width = scaled_life_icon.get_width()
         
@@ -503,10 +501,16 @@ class Game:
         self.wait_for_player_action()
        
     def run(self):
-        screen.fill((30, 30, 30))
+        
+        if self.state in [Main_Menu, Settings, Paused, Store, Victory, Game_Over]:
+            self.screen.blit(config.menus_background_path)
+        else:
+            screen.fill((30, 30, 30))
+        
         if self.state == Playing:
             # Define keys for players
             active_players = self.player_group.sprites()
+            
             
             for player in active_players:
                 player.get_input()
@@ -574,6 +578,7 @@ class Game:
         pygame.event.clear()
         game.setup_game()
         game.state = Main_Menu
+        
         
     def check_players_status(self):
         for player in self.player_group.sprites():

@@ -1,5 +1,6 @@
 import pygame
 from laser import Laser
+import config
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, position, image_path, controls):
@@ -14,7 +15,7 @@ class Player(pygame.sprite.Sprite):
         self.laser_time = 0
         self.laser_cooldown = 600        
         self.lasers = pygame.sprite.Group()
-        self.laser_sound = pygame.mixer.Sound(r'E:\Project_Hope\Source_Code\assets\spaceship_1_laser.mp3')
+        self.laser_sound = pygame.mixer.Sound(config.laser_sound_path)
         self.laser_sound.set_volume(0.05) 
         self.controls = controls
         

@@ -1,10 +1,10 @@
 import pygame
+import config
 
 class Alien(pygame.sprite.Sprite):
     def __init__(self, color,x ,y, scale_size= (50, 50)):
         super().__init__()
-        file_path = '../assets/' + color + '.png'
-        original_image = pygame.image.load(file_path).convert_alpha()
+        original_image = pygame.image.load(config.alien_image_path).convert_alpha()
         self.image = pygame.transform.scale(original_image, scale_size)
         self.rect = self.image.get_rect(topleft = (x,y))
         
@@ -19,7 +19,7 @@ class Alien(pygame.sprite.Sprite):
 class Miniboss(pygame.sprite.Sprite):
     def __init__(self, side, screen_width, scale_size=(20, 20)):
         super().__init__()
-        original_image = pygame.image.load('../assets/miniboss.png').convert_alpha()
+        original_image = pygame.image.load(config.miniboss_image_path).convert_alpha()
         self.image = pygame.transform.scale(original_image, scale_size)
         self.screen_width = screen_width
         
