@@ -32,7 +32,6 @@ class Miniboss(pygame.sprite.Sprite):
         
         self.rect = self.image.get_rect(topleft=(x, 80))
         self.health = 40
-        print(f"Miniboss created at {x}, speed {self.speed}")
 
         
     def lose_health(self, amount=20):
