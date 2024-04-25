@@ -18,6 +18,7 @@
   ('bisect', 'E:\\Python\\Lib\\bisect.py', 'PYMODULE'),
   ('bz2', 'E:\\Python\\Lib\\bz2.py', 'PYMODULE'),
   ('calendar', 'E:\\Python\\Lib\\calendar.py', 'PYMODULE'),
+  ('config', 'E:\\Project_Hope\\Source_Code\\Hope\\config.py', 'PYMODULE'),
   ('configparser', 'E:\\Python\\Lib\\configparser.py', 'PYMODULE'),
   ('contextlib', 'E:\\Python\\Lib\\contextlib.py', 'PYMODULE'),
   ('contextvars', 'E:\\Python\\Lib\\contextvars.py', 'PYMODULE'),
